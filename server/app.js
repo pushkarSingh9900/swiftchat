@@ -13,6 +13,8 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 const chatRoutes = require('./routes/chatRoutes')
 app.use('/api/chat', chatRoutes);
+const messageRoutes = require('./routes/messageRoutes');
+app.use('/api/message', messageRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');
