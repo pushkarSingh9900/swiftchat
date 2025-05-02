@@ -1,15 +1,62 @@
+import React, { useEffect, useState } from 'react';
+import API from '../api/axios';
+import { useNavigate } from 'react-router-dom';
+
+
+
 const Chat = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-  
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-indigo-700">Welcome, {user?.name}</h1>
-          <p className="text-lg text-gray-700">You're logged in and ready to chat.</p>
-        </div>
-      </div>
-    );
+  const [chats, setChats] = useState([]);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const res = await API.get('/chat', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setChats(res.data);
+      } catch (err) {
+        console.error("Chat fetch failed:", err);
+        setError('Failed to load chats');
+      }
+    };
+
+    fetchChats();
+  }, [token]);
+
+  const getOtherUser = (chat) => {
+    const userId = user._id || user.id;
+    return chat.users.find((u) => u._id !== userId)?.name || 'Unknown';
   };
-  
-  export default Chat;
-  
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold mb-4">Welcome, {user?.name}</h1>
+
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      <div className="space-y-4">
+        {chats.map((chat) => (
+          <div
+          key={chat._id}
+          onClick={() => navigate('/chatbox', { state: { chat } })}
+          className="cursor-pointer bg-white rounded-lg shadow p-4 hover:bg-indigo-50 transition"
+        >
+          <h2 className="text-lg font-semibold">{getOtherUser(chat)}</h2>
+          {chat.latestMessage && (
+            <p className="text-sm text-gray-600">{chat.latestMessage.content}</p>
+          )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default Chat;
