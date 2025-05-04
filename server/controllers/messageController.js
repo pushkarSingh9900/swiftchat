@@ -2,6 +2,7 @@ const Message = require('../models/Message');
 const Chat = require('../models/Chat');
 
 exports.sendMessage = async (req, res) => {
+  console.log("Message POST request:", req.body);
   const { content, chatId } = req.body;
   const senderId = req.user.id;
 
@@ -31,12 +32,16 @@ exports.sendMessage = async (req, res) => {
 
 exports.getMessages = async (req, res) => {
   try {
+    console.log('Fetching messages for chatId:', req.params.chatId);
+
     const messages = await Message.find({ chat: req.params.chatId })
       .populate('sender', 'name email')
       .populate('chat');
 
     res.status(200).json(messages);
   } catch (error) {
-    res.status(400).json({ message: 'Failed to load messages' });
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Failed to load messages' });
   }
 };
+
