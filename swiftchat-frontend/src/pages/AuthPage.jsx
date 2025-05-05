@@ -48,7 +48,7 @@ const AuthPage = () => {
 
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/chat');
+      navigate('/chatDashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Authentication failed');
     }

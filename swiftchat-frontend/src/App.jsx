@@ -1,15 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Chat from './pages/Chat';
-import ChatBox from './pages/ChatBox';
 import AuthPage from './pages/AuthPage';
+import ChatDashboard from './pages/ChatDashboard';
 
 function App() {
   return (
     <Router>
       <Routes>       
-        <Route path='/chat' element={<Chat />} />
-        <Route path='/chatbox' element={<ChatBox />} />
         <Route path="/" element={<AuthPage />} />
+        <Route path="/chatDashboard" element={<ChatDashboard />} />
       </Routes>
     </Router>
   );
