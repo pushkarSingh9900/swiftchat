@@ -37,9 +37,36 @@ const ChatDashboard = () => {
       const res = await API.get(`/chat/search?email=${searchQuery}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSearchResults(res.data);
+      setSearchResults(res.data); // single user
     } catch (err) {
       setError('User not found');
+    }
+  };
+
+  const handleStartChat = async (otherUser) => {
+    try {
+      const res = await API.post(
+        '/chat',
+        {
+          userId: otherUser._id,
+          currentUserId: user._id,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setSelectedChat(res.data);
+      setSearchResults([]);
+      setSearchQuery('');
+
+      const exists = chats.some((chat) => chat._id === res.data._id);
+      if (!exists) {
+        setChats([res.data, ...chats]);
+      }
+    } catch (err) {
+      console.error('Failed to start chat:', err);
+      setError('Failed to start chat');
     }
   };
 
@@ -67,7 +94,7 @@ const ChatDashboard = () => {
               <div
                 key={result._id}
                 className="p-2 cursor-pointer hover:bg-gray-100 rounded"
-                onClick={() => setSelectedChat(result)}
+                onClick={() => handleStartChat(result)}
               >
                 {result.name} ({result.email})
               </div>

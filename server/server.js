@@ -45,14 +45,16 @@ io.on('connection', (socket) => {
       });
       
       socket.on('send_message', (message) => {
-        const chatId = message.chat._id;
-        if (chatId) {
+        try {
+          const chatId = message.chat?._id || message.chat;
+          if (!chatId) return;
+      
           io.in(chatId).emit('receive_message', message);
+        } catch (err) {
+          console.error('Socket emit error:', err);
         }
       });
-      
   });
 
-// Start server
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

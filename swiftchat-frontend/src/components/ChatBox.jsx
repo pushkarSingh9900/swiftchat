@@ -1,41 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import API from '../api/axios';
+import { format } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const socket = io('http://localhost:8080');
 
 const ChatBox = ({ chat, user }) => {
-  const chatId = chat?._id;
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [error, setError] = useState('');
+  const scrollRef = useRef(null);
+
+  const chatId = chat?._id;
 
   useEffect(() => {
-    if (!chatId || !user) return;
+    if (!chatId) return;
 
     socket.emit('join_chat', chatId);
 
     const handleReceive = (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      if (msg.chat._id === chatId) {
+        setMessages(prev => [...prev, msg]);
+      }
     };
 
     socket.on('receive_message', handleReceive);
-    return () => socket.off('receive_message', handleReceive);
-  }, [chatId, user]);
+
+    return () => {
+      socket.off('receive_message', handleReceive);
+    };
+  }, [chatId]);
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!chatId) return;
       try {
         const res = await API.get(`/message/${chatId}`);
         setMessages(res.data);
       } catch (err) {
+        console.error(err);
         setError('Failed to load messages');
       }
     };
 
-    fetchMessages();
+    if (chatId) fetchMessages();
   }, [chatId]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = async () => {
     if (!newMsg.trim()) return;
@@ -49,56 +64,56 @@ const ChatBox = ({ chat, user }) => {
     try {
       const res = await API.post('/message', payload);
       socket.emit('send_message', res.data);
-      setMessages((prev) => [...prev, res.data]);
       setNewMsg('');
     } catch (err) {
+      console.error(err);
       setError('Failed to send message');
     }
   };
 
-  if (!chatId) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Select a chat to start messaging.
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-full bg-gray-100 flex flex-col justify-between p-4">
-      <div className="h-[75vh] overflow-y-auto border rounded p-3 bg-gray-50">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-2 my-1 rounded text-sm ${
-              msg.sender._id === user._id
-                ? 'bg-indigo-200 text-right'
-                : 'bg-gray-200 text-left'
-            }`}
-          >
-            <p className="font-semibold">{msg.sender.name}</p>
-            <p>{msg.content}</p>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col h-full p-4">
+      <ScrollArea className="flex-1 overflow-y-auto pr-2">
+        {messages.map((msg, index) => {
+          const senderId =
+            typeof msg.sender === 'object' && msg.sender !== null
+              ? msg.sender._id
+              : msg.sender;
+          const isSender = senderId === user._id;
 
-      <div className="mt-4 flex space-x-2">
-        <input
-          type="text"
+          return (
+            <div
+              key={index}
+              className={`flex flex-col my-2 max-w-xs ${
+                isSender ? 'ml-auto items-end' : 'items-start'
+              }`}
+            >
+              <div
+                className={`px-4 py-2 rounded-lg text-sm shadow-md ${
+                  isSender ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-900'
+                }`}
+              >
+                <p className="font-semibold">{msg.sender?.name || 'You'}</p>
+                <p>{msg.content}</p>
+              </div>
+              <span className="text-xs text-gray-500 mt-1">
+                {format(new Date(msg.createdAt), 'hh:mm a')}
+              </span>
+            </div>
+          );
+        })}
+        <div ref={scrollRef} />
+      </ScrollArea>
+
+      <div className="mt-4 flex items-center gap-2">
+        <Input
+          placeholder="Type a message..."
           value={newMsg}
           onChange={(e) => setNewMsg(e.target.value)}
-          className="flex-1 border border-gray-300 rounded px-4 py-2"
-          placeholder="Type a message..."
+          className="flex-1"
         />
-        <button
-          onClick={handleSend}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-        >
-          Send
-        </button>
+        <Button onClick={handleSend}>Send</Button>
       </div>
-
-      {error && <p className="text-red-500 mt-2">{error}</p>}
     </div>
   );
 };
